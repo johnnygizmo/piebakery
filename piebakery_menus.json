@@ -1,0 +1,227 @@
+[
+  {
+    "name": "Main",
+    "hotkey_type": "A",
+    "hotkey_ctrl": true,
+    "hotkey_shift": true,
+    "hotkey_alt": true,
+    "items": [
+      {
+        "item_type": "VALUE",
+        "label": "Primary Color",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "C.scene.tool_settings.image_paint.unified_paint_settings.color",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Blending Type",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "bpy.context.tool_settings.image_paint.brush.blend",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "PALETTE",
+        "label": "Palette",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "",
+        "submenu_name": "",
+        "palette_name": "Palette"
+      },
+      {
+        "item_type": "OPERATOR",
+        "label": "Brush Size",
+        "icon": "BRUSH_DATA",
+        "operator_id": "wm.radial_control",
+        "operator_props": "{\"data_path_primary\": \"tool_settings.image_paint.brush.size\", \"data_path_secondary\": \"tool_settings.image_paint.unified_paint_settings.size\", \"use_secondary\": \"tool_settings.image_paint.unified_paint_settings.use_unified_size\", \"rotation_path\": \"tool_settings.image_paint.brush.mask_texture_slot.angle\", \"color_path\": \"tool_settings.image_paint.brush.cursor_color_add\", \"fill_color_path\": \"tool_settings.image_paint.brush.color\", \"fill_color_override_path\": \"tool_settings.image_paint.unified_paint_settings.color\", \"fill_color_override_test_path\": \"tool_settings.image_paint.unified_paint_settings.use_unified_color\", \"zoom_path\": \"space_data.zoom\", \"image_id\": \"tool_settings.image_paint.brush\", \"secondary_tex\": true}",
+        "command": "",
+        "data_path": "",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "OPERATOR",
+        "label": "Brush Strength",
+        "icon": "BRUSH_DATA",
+        "operator_id": "wm.radial_control",
+        "operator_props": "{\"data_path_primary\": \"tool_settings.image_paint.brush.strength\", \"data_path_secondary\": \"tool_settings.image_paint.unified_paint_settings.strength\", \"use_secondary\": \"tool_settings.image_paint.unified_paint_settings.use_unified_strength\", \"rotation_path\": \"tool_settings.image_paint.brush.mask_texture_slot.angle\", \"color_path\": \"tool_settings.image_paint.brush.cursor_color_add\", \"fill_color_path\": \"tool_settings.image_paint.brush.color\", \"fill_color_override_path\": \"tool_settings.image_paint.unified_paint_settings.color\", \"fill_color_override_test_path\": \"tool_settings.image_paint.unified_paint_settings.use_unified_color\", \"zoom_path\": \"\", \"image_id\": \"tool_settings.image_paint.brush\", \"secondary_tex\": true}",
+        "command": "",
+        "data_path": "",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "OPERATOR",
+        "label": "Brush Rotation",
+        "icon": "NONE",
+        "operator_id": "wm.radial_control",
+        "operator_props": "{\"data_path_primary\": \"tool_settings.image_paint.brush.texture_slot.angle\", \"data_path_secondary\": \"\", \"use_secondary\": \"\", \"rotation_path\": \"tool_settings.image_paint.brush.texture_slot.angle\", \"color_path\": \"tool_settings.image_paint.brush.cursor_color_add\", \"fill_color_path\": \"tool_settings.image_paint.brush.color\", \"fill_color_override_path\": \"tool_settings.image_paint.unified_paint_settings.color\", \"fill_color_override_test_path\": \"tool_settings.image_paint.unified_paint_settings.use_unified_color\", \"zoom_path\": \"\", \"image_id\": \"tool_settings.image_paint.brush\", \"secondary_tex\": false}",
+        "command": "bpy.ops.wm.radial_control(data_path_primary=\"tool_settings.image_paint.brush.texture_slot.angle\", data_path_secondary=\"\", use_secondary=\"\", rotation_path=\"tool_settings.image_paint.brush.texture_slot.angle\", color_path=\"tool_settings.image_paint.brush.cursor_color_add\", fill_color_path=\"tool_settings.image_paint.brush.color\", fill_color_override_path=\"tool_settings.image_paint.unified_paint_settings.color\", fill_color_override_test_path=\"tool_settings.image_paint.unified_paint_settings.use_unified_color\", zoom_path=\"\", image_id=\"tool_settings.image_paint.brush\", secondary_tex=False)",
+        "data_path": "",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Stroke Method",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "bpy.context.tool_settings.image_paint.brush.stroke_method",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "SUBMENU",
+        "label": "Brush Settings",
+        "icon": "SETTINGS",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "",
+        "submenu_name": "Brush Settings",
+        "palette_name": ""
+      }
+    ]
+  },
+  {
+    "name": "Brush Settings",
+    "hotkey_type": "NONE",
+    "hotkey_ctrl": false,
+    "hotkey_shift": false,
+    "hotkey_alt": false,
+    "items": [
+      {
+        "item_type": "VALUE",
+        "label": "Smooth Stroke",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "bpy.context.tool_settings.image_paint.brush.use_smooth_stroke",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Rake",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "bpy.context.tool_settings.image_paint.brush.texture_slot.use_rake",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Rate",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "bpy.context.tool_settings.image_paint.brush.rate",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Jitter",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "bpy.context.tool_settings.image_paint.brush.jitter",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "SUBMENU",
+        "label": "Random Settings",
+        "icon": "SETTINGS",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "",
+        "submenu_name": "Random",
+        "palette_name": ""
+      }
+    ]
+  },
+  {
+    "name": "Random",
+    "hotkey_type": "NONE",
+    "hotkey_ctrl": false,
+    "hotkey_shift": false,
+    "hotkey_alt": false,
+    "items": [
+      {
+        "item_type": "VALUE",
+        "label": "Random Rotation",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "bpy.context.tool_settings.image_paint.brush.texture_slot.use_random",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Random Color",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "C.scene.tool_settings.image_paint.unified_paint_settings.use_color_jitter",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Random Hue",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "C.scene.tool_settings.image_paint.unified_paint_settings.hue_jitter",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Random Saturation",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "C.scene.tool_settings.image_paint.unified_paint_settings.saturation_jitter",
+        "submenu_name": "",
+        "palette_name": ""
+      },
+      {
+        "item_type": "VALUE",
+        "label": "Random Value",
+        "icon": "NONE",
+        "operator_id": "",
+        "operator_props": "",
+        "command": "",
+        "data_path": "C.scene.tool_settings.image_paint.unified_paint_settings.value_jitter",
+        "submenu_name": "",
+        "palette_name": ""
+      }
+    ]
+  }
+]
