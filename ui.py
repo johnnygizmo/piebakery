@@ -265,7 +265,10 @@ def _draw_group_children(layout, item, context):
             col.prop(child, "operator_id")
             col.prop(child, "operator_props")
         elif child.item_type == 'COMMAND':
-            col.prop(child, "command")
+            cmd_row = col.row(align=True)
+            cmd_row.prop(child, "command")
+            op = cmd_row.operator("piebakery.copy_to_clipboard", text="", icon='COPYDOWN')
+            op.text = child.command
         elif child.item_type == 'VALUE':
             col.prop(child, "data_path")
             col.prop(child, "read_only")
@@ -295,7 +298,10 @@ def _draw_item_props(layout, item, context):
             col.operator("piebakery.parse_operator_text",
                          text="Parse Operator Text", icon='FILE_REFRESH')
     elif item.item_type == 'COMMAND':
-        col.prop(item, "command")
+        cmd_row = col.row(align=True)
+        cmd_row.prop(item, "command")
+        op = cmd_row.operator("piebakery.copy_to_clipboard", text="", icon='COPYDOWN')
+        op.text = item.command
     elif item.item_type == 'VALUE':
         col.prop(item, "data_path")
         col.prop(item, "read_only")

@@ -140,6 +140,19 @@ class PIEBAKERY_OT_run_command(Operator):
             return {'CANCELLED'}
         return {'FINISHED'}
 
+class PIEBAKERY_OT_copy_to_clipboard(Operator):
+    """Copy text to the system clipboard"""
+    bl_idname = "piebakery.copy_to_clipboard"
+    bl_label = "Copy to Clipboard"
+    bl_options = {'INTERNAL'}
+
+    text: StringProperty()  # type: ignore
+
+    def execute(self, context):
+        context.window_manager.clipboard = self.text
+        return {'FINISHED'}
+
+
 class PIEBAKERY_OT_menu_add(Operator):
     """Add a new pie menu"""
     bl_idname = "piebakery.menu_add"
@@ -639,4 +652,5 @@ classes = (
     PIEBAKERY_OT_parse_operator_text,
     PIEBAKERY_OT_export_menus,
     PIEBAKERY_OT_import_menus,
+    PIEBAKERY_OT_copy_to_clipboard,
 )
