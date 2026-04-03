@@ -5,6 +5,24 @@ from bpy.types import UIList, Menu, AddonPreferences
 from .prop import PieBakeryMenu
 from . import state
 
+# ── Shared icon/name maps used by UILists and the editor ──────────────────
+_TYPE_ICONS = {
+    'OPERATOR':    'PLAY',
+    'COMMAND':     'CONSOLE',
+    'VALUE':       'RNA',
+    'SUBMENU':     'PIVOT_INDIVIDUAL',
+    'PALETTE':     'COLOR',
+    'GROUP':       'THREE_DOTS',
+    'PLACEHOLDER': 'BLANK1',
+}
+
+# Human-readable position name for collection index 0-7.
+# Layout in the visual grid:
+#   [7:Top-L]  [0:Top]   [1:Top-R]
+#   [6:Left]   [ pie ]   [2:Right]
+#   [5:Bot-L]  [4:Bot]   [3:Bot-R]
+_SLOT_NAMES = ["Top", "Top-R", "Right", "Bot-R", "Bot", "Bot-L", "Left", "Top-L"]
+
 class PIEBAKERY_UL_menus(UIList):
     bl_idname = "PIEBAKERY_UL_menus" 
 
@@ -190,6 +208,217 @@ class PIEBAKERY_MT_pie(Menu):
                         pie.separator()
                 return
 
+# ── Editor helpers ─────────────────────────────────────────────────────────
+
+def _draw_slot_button(parent, menu, slot_idx):
+    """Draw one pie slot as a selectable button, or a greyed label if empty."""
+    name = _SLOT_NAMES[slot_idx]
+    col = parent.column(align=True)
+    col.scale_y = 2.5
+    if slot_idx < len(menu.items):
+        item = menu.items[slot_idx]
+        ic = _TYPE_ICONS.get(item.item_type, 'DOT')
+        label = item.label if item.label else f"({name})"
+        is_active = slot_idx == menu.active_item_index
+        op = col.operator("piebakery.select_slot",
+                          text=label, icon=ic, depress=is_active)
+        op.slot_index = slot_idx
+    else:
+        col.enabled = False
+        col.label(text=f"({name})", icon='BLANK1')
+
+
+def _draw_group_children(layout, item, context):
+    """Draw the GROUP children list and the selected child's detail form."""
+    grp_box = layout.box()
+    grp_box.label(text="Group Children", icon='THREE_DOTS')
+    row = grp_box.row()
+    row.template_list(
+        "PIEBAKERY_UL_group_items", "", item, "group_items",
+        item, "active_group_item_index", rows=4,
+    )
+    btn_col = row.column(align=True)
+    btn_col.operator("piebakery.group_item_add",       icon='ADD',       text="")
+    btn_col.operator("piebakery.group_item_remove",    icon='REMOVE',    text="")
+    btn_col.operator("piebakery.group_item_duplicate", icon='DUPLICATE', text="")
+    btn_col.separator()
+    btn_col.operator("piebakery.group_item_move",
+                     icon='TRIA_UP',   text="").direction = 'UP'
+    btn_col.operator("piebakery.group_item_move",
+                     icon='TRIA_DOWN', text="").direction = 'DOWN'
+
+    if item.active_group_item_index < len(item.group_items):
+        child = item.group_items[item.active_group_item_index]
+        child_box = grp_box.box()
+        child_box.label(
+            text=child.label or "Child Item",
+            icon=_TYPE_ICONS.get(child.item_type, 'DOT'),
+        )
+        col = child_box.column(align=False)
+        col.prop(child, "item_type")
+        col.prop(child, "label")
+        hrow = col.row(align=True)
+        hrow.prop(child, "icon")
+        hrow.prop(child, "label_hidden", text="Hide", toggle=True)
+        col.separator(factor=0.5)
+        if child.item_type == 'OPERATOR':
+            col.prop(child, "operator_id")
+            col.prop(child, "operator_props")
+        elif child.item_type == 'COMMAND':
+            col.prop(child, "command")
+        elif child.item_type == 'VALUE':
+            col.prop(child, "data_path")
+            col.prop(child, "read_only")
+        elif child.item_type == 'SUBMENU':
+            col.prop(child, "submenu_name")
+        elif child.item_type == 'PALETTE':
+            col.prop_search(child, "palette_name", bpy.data, "palettes")
+
+
+def _draw_item_props(layout, item, context):
+    """Draw the full property form for a PieBakeryItem."""
+    box = layout.box()
+    box.label(text="Item Properties", icon='PROPERTIES')
+    col = box.column(align=False)
+    col.prop(item, "item_type")
+    col.separator(factor=0.5)
+    col.prop(item, "label")
+    hrow = col.row(align=True)
+    hrow.prop(item, "icon")
+    hrow.prop(item, "label_hidden", text="Hide", toggle=True)
+    col.separator()
+
+    if item.item_type == 'OPERATOR':
+        col.prop(item, "operator_id")
+        col.prop(item, "operator_props")
+        if item.operator_props:
+            col.operator("piebakery.parse_operator_text",
+                         text="Parse Operator Text", icon='FILE_REFRESH')
+    elif item.item_type == 'COMMAND':
+        col.prop(item, "command")
+    elif item.item_type == 'VALUE':
+        col.prop(item, "data_path")
+        col.prop(item, "read_only")
+    elif item.item_type == 'SUBMENU':
+        col.prop(item, "submenu_name")
+    elif item.item_type == 'PALETTE':
+        col.prop_search(item, "palette_name", bpy.data, "palettes")
+    elif item.item_type == 'GROUP':
+        grow = col.row(align=True)
+        grow.prop(item, "popout")
+        grow.prop(item, "columns")
+        col.separator()
+        _draw_group_children(col, item, context)
+
+
+def _draw_editor(layout, context):
+    """Draw the full 3-column Pie Bakery editor (used by the editor operator)."""
+    prefs = context.preferences.addons[__package__].preferences
+
+    # Split into three columns: ~27 % | ~37 % | ~36 %
+    outer = layout.split(factor=0.27)
+    col_left = outer.column()
+    inner = outer.split(factor=0.50)
+    col_mid = inner.column()
+    col_right = inner.column()
+
+    # ── LEFT: menu list + hotkey + modes ──────────────────────────────────
+    left_box = col_left.box()
+    left_box.label(text="Menus", icon='PIVOT_INDIVIDUAL')
+    lrow = left_box.row()
+    lrow.template_list(
+        "PIEBAKERY_UL_menus", "", prefs, "menus",
+        prefs, "active_menu_index", rows=6,
+    )
+    lcol = lrow.column(align=True)
+    lcol.operator("piebakery.menu_add",    icon='ADD',    text="")
+    lcol.operator("piebakery.menu_remove", icon='REMOVE', text="")
+
+    if prefs.active_menu_index < len(prefs.menus):
+        menu = prefs.menus[prefs.active_menu_index]
+
+        hk_box = left_box.box()
+        hk_box.label(text="Hotkey", icon='KEYINGSET')
+        hk_row = hk_box.row(align=True)
+        hk_row.prop(menu, "hotkey_type", text="")
+        hk_row.prop(menu, "hotkey_ctrl",  toggle=True)
+        hk_row.prop(menu, "hotkey_shift", toggle=True)
+        hk_row.prop(menu, "hotkey_alt",   toggle=True)
+        hk_box.operator("piebakery.refresh_keymaps",
+                        text="Apply Keymaps", icon='FILE_REFRESH')
+
+        modes_box = left_box.box()
+        modes_box.label(text="Active Modes  (empty = all)", icon='OBJECT_DATA')
+        flow = modes_box.grid_flow(
+            row_major=True, columns=2, even_columns=True,
+            even_rows=False, align=True,
+        )
+        flow.prop(menu, "modes")
+
+    left_box.separator(factor=0.5)
+    io_row = left_box.row(align=True)
+    io_row.operator("piebakery.export_menus", icon='EXPORT', text="Save")
+    io_row.operator("piebakery.import_menus", icon='IMPORT', text="Load")
+
+    # ── MID: visual pie grid + item list ──────────────────────────────────
+    if prefs.active_menu_index >= len(prefs.menus):
+        col_mid.box().label(text="Add or select a menu  →", icon='INFO')
+    else:
+        menu = prefs.menus[prefs.active_menu_index]
+
+        pie_box = col_mid.box()
+        pie_box.label(
+            text=f"Pie Layout  ·  {len(menu.items)} / 8 slots filled",
+            icon='COLLAPSEMENU',
+        )
+
+        # Row 1:  Top-L (7)   Top (0)   Top-R (1)
+        r1 = pie_box.row(align=True)
+        for s in [7, 0, 1]:
+            _draw_slot_button(r1, menu, s)
+
+        # Row 2:  Left (6)   [centre•]   Right (2)
+        r2 = pie_box.row(align=True)
+        _draw_slot_button(r2, menu, 6)
+        ctr = r2.column()
+        ctr.enabled = False
+        ctr.scale_y = 2.5
+        ctr.label(text="", icon='PIVOT_INDIVIDUAL')
+        _draw_slot_button(r2, menu, 2)
+
+        # Row 3:  Bot-L (5)   Bot (4)   Bot-R (3)
+        r3 = pie_box.row(align=True)
+        for s in [5, 4, 3]:
+            _draw_slot_button(r3, menu, s)
+
+        list_box = col_mid.box()
+        list_box.label(text="Items  (list index = slot position)", icon='LINENUMBERS_ON')
+        lr = list_box.row()
+        lr.template_list(
+            "PIEBAKERY_UL_items", "", menu, "items",
+            menu, "active_item_index", rows=4,
+        )
+        lc = lr.column(align=True)
+        lc.operator("piebakery.item_add",       icon='ADD',       text="")
+        lc.operator("piebakery.item_remove",    icon='REMOVE',    text="")
+        lc.operator("piebakery.item_duplicate", icon='DUPLICATE', text="")
+        lc.separator()
+        lc.operator("piebakery.item_move",
+                    icon='TRIA_UP',   text="").direction = 'UP'
+        lc.operator("piebakery.item_move",
+                    icon='TRIA_DOWN', text="").direction = 'DOWN'
+
+    # ── RIGHT: item detail ─────────────────────────────────────────────────
+    if prefs.active_menu_index < len(prefs.menus):
+        menu = prefs.menus[prefs.active_menu_index]
+        if menu.active_item_index < len(menu.items):
+            _draw_item_props(col_right, menu.items[menu.active_item_index], context)
+        else:
+            col_right.box().label(text="Select or add an item", icon='INFO')
+    else:
+        col_right.box().label(text="", icon='BLANK1')
+
+
 class PieBakeryPreferences(AddonPreferences):
     bl_idname = __package__
 
@@ -198,143 +427,11 @@ class PieBakeryPreferences(AddonPreferences):
     active_menu_index: IntProperty()  # type: ignore
 
     def draw(self, context):
-        layout = self.layout
-
-        # -- Pie‑menu list --
-        row = layout.row()
-        row.template_list(
-            "PIEBAKERY_UL_menus", "", self, "menus",
-            self, "active_menu_index", rows=4,
+        self.layout.operator(
+            "piebakery.open_editor",
+            text="Open Pie Bakery Editor",
+            icon='COLLAPSEMENU',
         )
-        col = row.column(align=True)
-        col.operator("piebakery.menu_add",    icon='ADD',    text="")
-        col.operator("piebakery.menu_remove", icon='REMOVE', text="")
-
-        row = layout.row(align=True)
-        row.operator("piebakery.export_menus", icon='EXPORT', text="Save Menus")
-        row.operator("piebakery.import_menus", icon='IMPORT', text="Load Menus")
-
-        if getattr(self, "active_menu_index", 0) >= len(self.menus):
-            return
-
-        menu = self.menus[self.active_menu_index]
-
-        # -- Hotkey --
-        box = layout.box()
-        box.label(text="Hotkey", icon='KEYINGSET')
-        row = box.row(align=True)
-        row.prop(menu, "hotkey_type", text="")
-        row.prop(menu, "hotkey_ctrl",  toggle=True)
-        row.prop(menu, "hotkey_shift", toggle=True)
-        row.prop(menu, "hotkey_alt",   toggle=True)
-        box.operator("piebakery.refresh_keymaps",
-                     text="Apply Keymaps", icon='FILE_REFRESH')
-
-        # -- Active Modes --
-        box = layout.box()
-        box.label(text="Active Modes (empty = all modes)", icon='OBJECT_DATA')
-        flow = box.grid_flow(row_major=True, columns=4, even_columns=True,
-                             even_rows=False, align=True)
-        flow.prop(menu, "modes")
-
-        # -- Items list --
-        box = layout.box()
-        box.label(text="Menu Items (max 8)", icon='COLLAPSEMENU')
-        row = box.row()
-        row.template_list(
-            "PIEBAKERY_UL_items", "", menu, "items",
-            menu, "active_item_index", rows=4,
-        )
-        col = row.column(align=True)
-        col.operator("piebakery.item_add",    icon='ADD',    text="")
-        col.operator("piebakery.item_remove", icon='REMOVE', text="")
-        col.operator("piebakery.item_duplicate", icon='DUPLICATE', text="")
-        col.separator()
-        col.operator("piebakery.item_move", icon='TRIA_UP',
-                     text="").direction = 'UP'
-        col.operator("piebakery.item_move", icon='TRIA_DOWN',
-                     text="").direction = 'DOWN'
-
-        # -- Selected item detail --
-        if getattr(menu, "active_item_index", 0) >= len(menu.items):
-            return
-
-        item = menu.items[menu.active_item_index]
-        detail = box.box()
-        indent = detail.row()
-        indent.separator(factor=2.0)
-        col_detail = indent.column()
-        col_detail.prop(item, "item_type")
-        col_detail.prop(item, "label")
-        col_detail.prop(item, "icon")
-        col_detail.prop(item, "label_hidden")
-
-        if item.item_type == 'OPERATOR':
-            col_detail.prop(item, "operator_id")
-            col_detail.prop(item, "operator_props")
-            if item.operator_props:
-                col_detail.operator("piebakery.parse_operator_text",
-                                text="Parse Operator Text", icon='FILE_REFRESH'
-                                )
-        elif item.item_type == 'COMMAND':
-            col_detail.prop(item, "command")
-        elif item.item_type == 'VALUE':
-            col_detail.prop(item, "data_path")
-            col_detail.prop(item, "read_only")
-        elif item.item_type == 'SUBMENU':
-            col_detail.prop(item, "submenu_name")
-        elif item.item_type == 'PALETTE':
-            col_detail.prop_search(item, "palette_name",
-                               bpy.data, "palettes")
-        elif item.item_type == 'GROUP':
-            row = col_detail.row(align=True)
-            row.prop(item, "popout")
-            row.prop(item, "columns")
-            # -- Group children (tree) --
-            grp_box = col_detail.box()
-            grp_indent = grp_box.row()
-            grp_indent.separator(factor=2.0)
-            grp_col = grp_indent.column()
-            grp_col.label(text="Group Children", icon='THREE_DOTS')
-            row = grp_col.row()
-            row.template_list(
-                "PIEBAKERY_UL_group_items", "", item, "group_items",
-                item, "active_group_item_index", rows=3,
-            )
-            col = row.column(align=True)
-            col.operator("piebakery.group_item_add",    icon='ADD',    text="")
-            col.operator("piebakery.group_item_remove", icon='REMOVE', text="")
-            col.operator("piebakery.group_item_duplicate", icon='DUPLICATE', text="")
-            col.separator()
-            col.operator("piebakery.group_item_move", icon='TRIA_UP',
-                         text="").direction = 'UP'
-            col.operator("piebakery.group_item_move", icon='TRIA_DOWN',
-                         text="").direction = 'DOWN'
-
-            # -- Selected group child detail --
-            if item.active_group_item_index < len(item.group_items):
-                child = item.group_items[item.active_group_item_index]
-                child_box = grp_col.box()
-                child_indent = child_box.row()
-                child_indent.separator(factor=2.0)
-                child_col = child_indent.column()
-                child_col.prop(child, "item_type")
-                child_col.prop(child, "label")
-                child_col.prop(child, "icon")
-                child_col.prop(child, "label_hidden")
-                if child.item_type == 'OPERATOR':
-                    child_col.prop(child, "operator_id")
-                    child_col.prop(child, "operator_props")
-                elif child.item_type == 'COMMAND':
-                    child_col.prop(child, "command")
-                elif child.item_type == 'VALUE':
-                    child_col.prop(child, "data_path")
-                    child_col.prop(child, "read_only")
-                elif child.item_type == 'SUBMENU':
-                    child_col.prop(child, "submenu_name")
-                elif child.item_type == 'PALETTE':
-                    child_col.prop_search(child, "palette_name",
-                                             bpy.data, "palettes")
 
 classes = (
     PIEBAKERY_UL_menus,

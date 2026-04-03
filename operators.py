@@ -583,7 +583,44 @@ class PIEBAKERY_OT_import_menus(Operator):
         self.report({'INFO'}, f"Imported {len(data)} menu(s)")
         return {'FINISHED'}
 
+class PIEBAKERY_OT_select_slot(Operator):
+    """Select this pie slot for editing"""
+    bl_idname = "piebakery.select_slot"
+    bl_label = "Select Slot"
+    bl_options = {'INTERNAL'}
+
+    slot_index: IntProperty()  # type: ignore
+
+    def execute(self, context):
+        prefs = context.preferences.addons[__package__].preferences
+        if prefs.active_menu_index >= len(prefs.menus):
+            return {'CANCELLED'}
+        menu = prefs.menus[prefs.active_menu_index]
+        if self.slot_index < len(menu.items):
+            menu.active_item_index = self.slot_index
+        return {'FINISHED'}
+
+
+class PIEBAKERY_OT_open_editor(Operator):
+    """Open the Pie Bakery Menu Editor"""
+    bl_idname = "piebakery.open_editor"
+    bl_label = "Pie Bakery Menu Editor"
+    bl_options = {'INTERNAL'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=980)
+
+    def draw(self, context):
+        from .ui import _draw_editor
+        _draw_editor(self.layout, context)
+
+    def execute(self, context):
+        return {'FINISHED'}
+
+
 classes = (
+    PIEBAKERY_OT_select_slot,
+    PIEBAKERY_OT_open_editor,
     PIEBAKERY_OT_menu_add,
     PIEBAKERY_OT_menu_remove,
     PIEBAKERY_OT_item_add,
